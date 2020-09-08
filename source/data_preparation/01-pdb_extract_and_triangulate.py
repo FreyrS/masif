@@ -7,6 +7,7 @@ from Bio.PDB import *
 import sys
 import importlib
 from IPython.core.debugger import set_trace
+import time
 
 # Local includes
 from default_config.masif_opts import masif_opts
@@ -49,42 +50,91 @@ extractPDB(pdb_filename, out_filename1+".pdb", chain_ids1)
 
 # Compute MSMS of surface w/hydrogens, 
 try:
+    t1 = time.time()
+    t1_cpu = time.process_time()
     vertices1, faces1, normals1, names1, areas1 = computeMSMS(out_filename1+".pdb",\
         protonate=True)
+    t2 = time.time()
+    t2_cpu = time.process_time()
+    print('MSMS time: {}\n'.format(t2-t1))
+    print('MSMS cpu time: {}\n'.format(t2_cpu-t1_cpu))
 except:
     set_trace()
 
 # Compute "charged" vertices
 if masif_opts['use_hbond']:
+    t1 = time.time()
+    t1_cpu = time.process_time()
     vertex_hbond = computeCharges(out_filename1, vertices1, names1)
+    t2 = time.time()
+    t2_cpu = time.process_time()
+    print('HBond time: {}\n'.format(t2-t1))
+    print('HBond cpu time: {}\n'.format(t2_cpu-t1_cpu))
 
 # For each surface residue, assign the hydrophobicity of its amino acid. 
 if masif_opts['use_hphob']:
+    t1 = time.time()
+    t1_cpu = time.process_time()
     vertex_hphobicity = computeHydrophobicity(names1)
+    t2 = time.time()
+    t2_cpu = time.process_time()
+    print('HPhob time: {}\n'.format(t2-t1))
+    print('HPhob cpu time: {}\n'.format(t2_cpu-t1_cpu))
+
 
 # If protonate = false, recompute MSMS of surface, but without hydrogens (set radius of hydrogens to 0).
 vertices2 = vertices1
 faces2 = faces1
 
 # Fix the mesh.
+t1 = time.time()
+t1_cpu = time.process_time()
 mesh = pymesh.form_mesh(vertices2, faces2)
 regular_mesh = fix_mesh(mesh, masif_opts['mesh_res'])
+t2 = time.time()
+t2_cpu = time.process_time()
+print('Fix mesh time: {}\n'.format(t2-t1))
+print('Fix mesh cpu time: {}\n'.format(t2_cpu-t1_cpu))
 
 # Compute the normals
+t1 = time.time()
+t1_cpu = time.process_time()
 vertex_normal = compute_normal(regular_mesh.vertices, regular_mesh.faces)
+t2 = time.time()
+t2_cpu = time.process_time()
+print('Compute normals time: {}\n'.format(t2-t1))
+print('Compute normals cpu time: {}\n'.format(t2_cpu-t1_cpu))
 # Assign charges on new vertices based on charges of old vertices (nearest
 # neighbor)
 
 if masif_opts['use_hbond']:
+    t1 = time.time()
+    t1_cpu = time.process_time()
     vertex_hbond = assignChargesToNewMesh(regular_mesh.vertices, vertices1,\
         vertex_hbond, masif_opts)
+    t2 = time.time()
+    t2_cpu = time.process_time()
+    print('Assign HBond time: {}\n'.format(t2-t1))
+    print('Assign HBond cpu time: {}\n'.format(t2_cpu-t1_cpu))
 
 if masif_opts['use_hphob']:
+    t1 = time.time()
+    t1_cpu = time.process_time()
     vertex_hphobicity = assignChargesToNewMesh(regular_mesh.vertices, vertices1,\
         vertex_hphobicity, masif_opts)
+    t2 = time.time()
+    t2_cpu = time.process_time()
+    print('Assign HPhob time: {}\n'.format(t2-t1))
+    print('Assign HPhob cpu time: {}\n'.format(t2_cpu-t1_cpu))
 
 if masif_opts['use_apbs']:
+    t1 = time.time()
+    t1_cpu = time.process_time()
     vertex_charges = computeAPBS(regular_mesh.vertices, out_filename1+".pdb", out_filename1)
+    t2 = time.time()
+    t2_cpu = time.process_time()
+    print('APBS time: {}\n'.format(t2-t1))
+    print('APBS cpu time: {}\n'.format(t2_cpu-t1_cpu))
 
 iface = np.zeros(len(regular_mesh.vertices))
 if 'compute_iface' in masif_opts and masif_opts['compute_iface']:

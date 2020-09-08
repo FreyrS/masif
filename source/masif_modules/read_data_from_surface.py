@@ -29,9 +29,17 @@ def read_data_from_surface(ply_fn, params):
     normals = np.stack([n1,n2,n3], axis=1)
 
     # Compute the angular and radial coordinates. 
+    t1 = time.time()
+    t1_cpu = time.process_time()
     rho, theta, neigh_indices, mask = compute_polar_coordinates(mesh, radius=params['max_distance'], max_vertices=params['max_shape_size'])
+    t2 = time.time()
+    t2_cpu = time.process_time()
+    print('Polar coordinates time: {}\n'.format(t2-t1))
+    print('Polar coordinates cpu time: {}\n'.format(t2_cpu-t1_cpu))
 
     # Compute the principal curvature components for the shape index. 
+    t1 = time.time()
+    t1_cpu = time.process_time()
     mesh.add_attribute("vertex_mean_curvature")
     H = mesh.get_attribute("vertex_mean_curvature")
     mesh.add_attribute("vertex_gaussian_curvature")
@@ -45,6 +53,11 @@ def read_data_from_surface(ply_fn, params):
     # Compute the shape index 
     si = (k1+k2)/(k1-k2)
     si = np.arctan(si)*(2/np.pi)
+
+    t2 = time.time()
+    t2_cpu = time.process_time()
+    print('Curvature computation time: {}\n'.format(t2-t1))
+    print('Curvature computation cpu time: {}\n'.format(t2_cpu-t1_cpu))
 
     # Normalize the charge.
     charge = mesh.get_attribute("vertex_charge")
@@ -69,6 +82,8 @@ def read_data_from_surface(ply_fn, params):
     input_feat = np.zeros((n, params['max_shape_size'], 5))
 
     # Compute the input features for each patch.
+    t1 = time.time()
+    t1_cpu = time.process_time()
     for vix in range(n):
         # Patch members.
         neigh_vix = np.array(neigh_indices[vix])
@@ -86,6 +101,10 @@ def read_data_from_surface(ply_fn, params):
         input_feat[vix, :len(neigh_vix), 2] = hbond[neigh_vix]
         input_feat[vix, :len(neigh_vix), 3] = charge[neigh_vix]
         input_feat[vix, :len(neigh_vix), 4] = hphob[neigh_vix]
+    t2 = time.time()
+    t2_cpu = time.process_time()
+    print('DDC computation time: {}\n'.format(t2-t1))
+    print('DDC computation cpu time: {}\n'.format(t2_cpu-t1_cpu))
         
     return input_feat, rho, theta, mask, neigh_indices, iface_labels, np.copy(mesh.vertices)
 
